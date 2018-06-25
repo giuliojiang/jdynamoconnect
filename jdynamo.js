@@ -3,16 +3,39 @@ var AWS = require("aws-sdk");
 var pub = {};
 var priv = {};
 
-AWS.config.update({
-    region: "eu-west-2"
-});
+// ============================================================================
+// Initializes the dynamodb database object
+// The context object is populated/overwritten at the field key "jdynamoconnect"
+// The jdynamoconnect context section is:
+// {
+//     dynamodb: AWS DynamoDB object
+// }
+// <context> any object, or an empty object {}
+// <region>  an AWS region string, such as "eu-west-2"
+pub.init = function(context, region) {
+    if (context.jdynamoconnect) {
+        throw new Error("The field jdynamoconnect is already used in the context object. You can call init only once");
+    }
 
-var dynamodb = new AWS.DynamoDB();
+    AWS.config.update({
+        region: region
+    });
 
+    var dynamodb = new AWS.DynamoDB();
+    context.jdynamoconnect = {};
+    context.jdynamoconnect.dynamodb = dynamodb;
+}
+
+// ============================================================================
+// Atomically increases an item
 // <tableName> the name of the DynamoDB table
 // <counterName> the name of the counter in the table, column "name"
 // callback(err, count)
-pub.atomicIncrement = function(tableName, counterName, callback) {
+//     <err>   any error in the operation
+//     <count> is the updated count number
+pub.atomicIncrement = function(context, tableName, counterName, callback) {
+
+    priv.checkContext(context);
 
     var params = {
         UpdateExpression: "SET kval = kval + :incr",
@@ -30,7 +53,7 @@ pub.atomicIncrement = function(tableName, counterName, callback) {
         }
     };
 
-    dynamodb.updateItem(params, function(err, data) {
+    context.jdynamoconnect.dynamodb.updateItem(params, function(err, data) {
         if (err) {
             callback(err);
         } else {
@@ -38,6 +61,7 @@ pub.atomicIncrement = function(tableName, counterName, callback) {
                 var attributes = data.Attributes;
                 var kval = attributes.kval;
                 var count = kval.N;
+                var count = parseInt(count);
                 callback(null, count);
             } catch (err) {
                 callback(err);
@@ -47,7 +71,13 @@ pub.atomicIncrement = function(tableName, counterName, callback) {
 
 };
 
-
+// ============================================================================
+// Checks whether the context has been initialized for jdynamoconnect
+priv.checkContext = function(context) {
+    if (!context.jdynamoconnect) {
+        throw new Error("context object not initialized. Please call jdynamoconnect.init");
+    }
+}
 
 
 
