@@ -1,3 +1,13 @@
+// Utility AWS dynamoDB connection library
+// 
+// Expects the usage of a table containing atomic counters:
+//     key: "kname"
+//     countervalue: "kval"
+// The atomic counters table is used to generate unique identifiers for other tables
+//
+// Other tables have as key "kid", an ID generated using the counters table
+// All other fields are arbitrary
+
 var AWS = require("aws-sdk");
 
 var pub = {};
@@ -21,9 +31,9 @@ pub.init = function(context, region) {
         region: region
     });
 
-    var dynamodb = new AWS.DynamoDB();
     context.jdynamoconnect = {};
-    context.jdynamoconnect.dynamodb = dynamodb;
+    context.jdynamoconnect.dynamodb = new AWS.DynamoDB();
+    context.jdynamoconnect.docclient = new AWS.DynamoDB.DocumentClient();
 }
 
 // ============================================================================
@@ -67,6 +77,46 @@ pub.atomicIncrement = function(context, tableName, counterName, callback) {
                 callback(err);
             }
         }
+    });
+
+};
+
+// ============================================================================
+// Inserts a document in the table
+// Automatically generates a new unique ID, and sets it to the "kid" field of the document
+// <context> jdynamo context object
+// <tableName> name of the table where the new document will be inserted
+// <document> javascript key-value object document to be inserted
+// <counterTable> table name that has all atomic counters
+// <counterName> name of the counter in the atomic counters table
+// callback(err)
+//     <err> any error during processing
+pub.insertDocument = function(context, tableName, document, counterTable, counterName, callback) {
+
+    priv.checkContext(context);
+
+    // Get an updated counter
+    pub.atomicIncrement(context, counterTable, counterName, function(err, count) {
+        if (err) {
+            callback(err);
+            return;
+        }
+
+        var kid = count.toString();
+        document.kid = kid;
+
+        var params = {
+            TableName: tableName,
+            Item: document
+        };
+
+        context.jdynamoconnect.docclient.put(params, function(err) {
+            if (err) {
+                callback(err);
+            } else {
+                callback();
+            }
+        });
     });
 
 };
