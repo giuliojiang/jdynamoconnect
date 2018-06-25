@@ -1,0 +1,24 @@
+{
+  "name": "jdynamoconnect",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "aws-sdk": "^2.263.1",
+    "npm": "^6.1.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/giuliojiang/jdynamoconnect.git"
+  },
+  "author": "giuliojiang",
+  "license": "GPL-2.0",
+  "bugs": {
+    "url": "https://github.com/giuliojiang/jdynamoconnect/issues"
+  },
+  "homepage": "https://github.com/giuliojiang/jdynamoconnect#readme"
+}
